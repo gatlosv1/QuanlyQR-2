@@ -1,13 +1,12 @@
 @media print {
-
   @page {
-    size: 90mm 60mm;
+    size: 90mm 55mm;
     margin: 0;
   }
 
   html, body {
     width: 90mm;
-    height: 60mm;
+    height: 55mm;
     margin: 0;
     overflow: hidden;
   }
@@ -26,8 +25,8 @@
     top: 0;
     left: 0;
     width: 90mm;
-    height: 60mm;
-    padding: 3mm;
+    height: 55mm;
+    padding: 4mm;
     box-sizing: border-box;
     background: #fff;
   }
@@ -35,11 +34,10 @@
   /* QR bên trái */
   #qrcode {
     position: absolute;
-    left: 3mm;
-    top: 3mm;
+    left: 4mm;
+    top: 4mm;
     width: 35mm !important;
     height: 35mm !important;
-    border: none !important;
   }
 
   #qrcode canvas,
@@ -48,31 +46,35 @@
     height: 35mm !important;
   }
 
-  /* Ngày + Tổng KL */
-  #qtext div:nth-child(2),
-  #qtext div:nth-child(3) {
-    margin-left: 40mm;
+  /* Chỉ hiển thị Ngày và Tổng KL */
+  #qtext div:nth-child(2),   /* Ngày */
+  #qtext div:nth-child(3) {  /* Tổng KL */
+    margin-left: 42mm;
     margin-top: 8mm;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: normal;
   }
 
   #qtext div:nth-child(3) {
-    margin-top: 10px;
+    margin-top: 6px;
   }
 
   /* Mã lô phía dưới */
   #qtext div:first-child {
     position: absolute;
-    bottom: 4mm;
+    bottom: 5mm;
     left: 0;
     width: 100%;
     text-align: center;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
   }
-}
 
+  /* Ẩn các thông tin thừa */
+  #qtext div:not(:first-child):not(:nth-child(2)):not(:nth-child(3)) {
+    display: none !important;
+  }
+}
 body { 
   font-family: Arial, sans-serif; 
   background: #eef2f7; 
@@ -258,4 +260,29 @@ button.delete-btn {
 
 button.delete-btn:hover {
   background: #c82333;
+}
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  padding: 10px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #ddd;
 }
