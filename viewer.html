@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xem Thông Tin Lô Hàng - Quản Lý Trái Cây</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fa;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    header {
+      background: #0066ff;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .content {
+      padding: 30px;
+    }
+    .qr-code {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .info-item {
+      background: #f8f9ff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border-left: 4px solid #0066ff;
+    }
+    .label {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .value {
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .ma-lo {
+      font-size: 22px;
+      font-weight: bold;
+      color: #0066ff;
+      text-align: center;
+      padding: 15px;
+      background: #f0f4ff;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    button {
+      padding: 12px 24px;
+      background: #0066ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📋 Thông Tin Lô Hàng</h1>
+    </header>
+    
+    <div class="content">
+      <div id="loading" style="text-align:center; padding:40px;">
+        Đang tải thông tin...
+      </div>
+
+      <div id="result" style="display:none;">
+        <div class="ma-lo" id="maLoDisplay"></div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">Ngày Nhập</div>
+            <div class="value" id="ngayDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">Tổng Khối Lượng</div>
+            <div class="value" id="tongklDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">TT Xe</div>
+            <div class="value" id="ttxeDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">Nhà Cung Cấp</div>
+            <div class="value" id="nccDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">Nơi Xuất Sản</div>
+            <div class="value" id="noiDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">Hàng</div>
+            <div class="value" id="hangDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">Múi</div>
+            <div class="value" id="muiDisplay"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">Vị Trí</div>
+            <div class="value" id="vitriDisplay"></div>
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top:30px;">
+          <button onclick="window.print()">🖨️ In Thông Tin</button>
+        </div>
+      </div>
+
+      <div id="error" style="display:none; color:red; text-align:center; padding:40px;">
+        Không tìm thấy thông tin cho mã QR này.
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCtmyLlGJuCn35kYR6819XbaP6665KKgd8",
+      authDomain: "quanlysaurieng.firebaseapp.com",
+      databaseURL: "https://quanlysaurieng-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "quanlysaurieng",
+      storageBucket: "quanlysaurieng.firebasestorage.app",
+      messagingSenderId: "5286982913",
+      appId: "1:5286982913:web:0dc61051f41fab874cd700"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const historyRef = db.ref('qrHistory');
+
+    function parseMaLo(maLo) {
+      // Ví dụ: D009MT25065-01-TB-05/12
+      const parts = maLo.split('-');
+      const code = parts[0];
+      
+      return {
+        hang: code[0],
+        ncc: code.slice(1,4),
+        noi: code.slice(4,6),
+        ngay: code.slice(6,10), // ddmmylast
+        ttxe: parts[1] || '',
+        mui: parts[2] || '',
+        vitri: parts[3] || ''
+      };
+    }
+
+    async function loadQRInfo(maLo) {
+      const loading = document.getElementById('loading');
+      const result = document.getElementById('result');
+      const error = document.getElementById('error');
+
+      loading.style.display = 'block';
+      result.style.display = 'none';
+      error.style.display = 'none';
+
+      try {
+        // Tìm trong Firebase
+        const snapshot = await historyRef.once('value');
+        const data = snapshot.val();
+        
+        let item = null;
+        if (data) {
+          item = Object.values(data).find(h => h.ma_lo === maLo);
+        }
+
+        if (item) {
+          // Hiển thị dữ liệu đầy đủ từ Firebase
+          document.getElementById('maLoDisplay').textContent = item.ma_lo;
+          document.getElementById('ngayDisplay').textContent = item.ngay_display || 'Không có';
+          document.getElementById('tongklDisplay').textContent = item.tongkl ? item.tongkl + ' kg' : 'Không có';
+          document.getElementById('ttxeDisplay').textContent = item.ttxe || '—';
+          document.getElementById('nccDisplay').textContent = item.ncc || '—';
+          document.getElementById('noiDisplay').textContent = item.noi || '—';
+          document.getElementById('hangDisplay').textContent = item.hang || '—';
+          document.getElementById('muiDisplay').textContent = item.mui || '—';
+          document.getElementById('vitriDisplay').textContent = 
+            (item.vitri1 && item.vitri2) ? `${item.vitri1}/${item.vitri2}` : (item.vitri1 || '—');
+          
+          result.style.display = 'block';
+        } else {
+          // Nếu không tìm thấy trong DB, vẫn parse mã để hiển thị cơ bản
+          const parsed = parseMaLo(maLo);
+          document.getElementById('maLoDisplay').textContent = maLo;
+          document.getElementById('ngayDisplay').textContent = 'Không tìm thấy chi tiết';
+          document.getElementById('tongklDisplay').textContent = '—';
+          document.getElementById('ttxeDisplay').textContent = parsed.ttxe;
+          document.getElementById('nccDisplay').textContent = parsed.ncc;
+          document.getElementById('noiDisplay').textContent = parsed.noi;
+          document.getElementById('hangDisplay').textContent = parsed.hang;
+          document.getElementById('muiDisplay').textContent = parsed.mui;
+          document.getElementById('vitriDisplay').textContent = parsed.vitri;
+          
+          result.style.display = 'block';
+        }
+      } catch (err) {
+        console.error(err);
+        error.style.display = 'block';
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // Lấy mã QR từ URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const maLo = urlParams.get('q');
+
+    if (maLo) {
+      loadQRInfo(maLo);
+    } else {
+      document.getElementById('loading').innerHTML = `
+        <p style="color:red;">Không có mã QR được truyền vào.<br>
+        Vui lòng quét QR và truy cập link dạng:<br>
+        <strong>viewer.html?q=MÃ_LÔ</strong></p>`;
+    }
+  </script>
+</body>
+</html>
